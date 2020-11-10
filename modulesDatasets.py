@@ -94,21 +94,16 @@ def dics_to_dicOfLists(dics):
                 ndic[key] = [dic[key]]
     return ndic
 
-def findRealBiomass(exIds, exchanges):
+def findRealBiomass(model, exIds):
     '''Find the real biomass index among several biomasses reactions found in the model
     checking which has the maximum values.
-    Inputs:  -exIds: list, list of exchanges ids
-             -outputs: numpy array, exchanges outputs
-    Outputs: -bioIdx: int, index of the real biomass with non null values
+    Inputs:  -model: cobra model
+             -exIds: list, exchange identifiers
+    Outputs: -bioIdx: int, index of the real biomass (objective function)
     '''
-    maxidx, maxis = [], []
-    for i in range(len(exIds)):
-        exId = exIds[i]
-        if 'biomass' in exId.lower():
-            maxis.append(np.mean(exchanges[:,i]))
-            maxidx.append(i)
-    preIdx = maxis.index(max(maxis))
-    bioIdx = maxidx[preIdx]
+    expression = str(model.objective.expression)
+    bioId = expression.split('*')[1].split('-')[0].strip()
+    bioIdx = exIds.index(bioId)
     return bioIdx
 
 def FBA_output_fluxes_MNN(model, medium, layers):
@@ -329,7 +324,7 @@ def dic2array(dic):
 
 def grrann_layers(m, preExchanges=0):
     '''Given a cobra model, returns a list with the reactions of the model and another list
-    with its exchanges and the BIOMASS reactions
+    with its exchanges and the BIOMASS reactions. Looks for the real biomass, the objective value
     Inputs:  -m: cobramodel
              -preExchanges: numpy array, exchanges fluxes previous to biomass labeling
     Outputs: -reactions: list, cobra reactions of inner reactions
@@ -346,8 +341,10 @@ def grrann_layers(m, preExchanges=0):
         else:
             reactions.append(reaction)
             reIds.append(reaction.id)
+    return [reactions, exchanges], [reIds, exIds]
+    #Find the real biomass
     if type(preExchanges) == type(np.array([])):
-        bioIdx = findRealBiomass(exIds, preExchanges)
+        bioIdx = findRealBiomass(m, exIds)
         exIds[bioIdx] = 'Biomass'
     return [reactions, exchanges], [reIds, exIds]
 

@@ -397,7 +397,7 @@ def getConnectionsMatrix(gLayDics):
                 mat[i,j]=1
     return mat
     
-def randomInstances(number, v, inputIds, sInpStrains=[], strain=0):
+def randomInstances(number, v, inputIds, isModel=False, sInpStrains=[], strain=0):
     '''Returns a set of random input instances ready to be used by the MNN
     Inputs:  -number: int, number of instances
              -v: int, version of the MNN
@@ -408,7 +408,7 @@ def randomInstances(number, v, inputIds, sInpStrains=[], strain=0):
     '''
     rds = []
     for i in range(number):
-        rds.append(list(random_medium(inputIds, isModel=False).values()))
+        rds.append(list(random_medium(inputIds, isModel).values()))
     xTest = []
     if v in [23, 24]:
         for r in rds:
@@ -417,6 +417,19 @@ def randomInstances(number, v, inputIds, sInpStrains=[], strain=0):
     else:
         xTest = [rds]
     return xTest
+
+def get_influxesIds(m):
+    '''Returns a list with the metabolites that can be taken by the cell
+    Input:  -m: cobra model
+    Output: -influxes: list [metabolitesIds]
+    '''
+    influxes = []
+    for exch in m.exchanges:
+        if exch.reaction.split()[-1] == '<=>':
+            influxes.append(exch.id)
+    if 'EX_h2o_e' in influxes:
+        influxes.remove('EX_h2o_e')
+    return influxes
 
 def random_medium(inputIds, isModel=True, mini=0.0, maxi=1000):
     '''Return a dictionary with random values for the metabolites in a medium
