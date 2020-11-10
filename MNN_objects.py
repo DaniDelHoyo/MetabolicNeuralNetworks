@@ -82,9 +82,6 @@ class MNN_dataset(object):
             normZeros = real2norm(np.zeros((1,oriNetOuts[0].shape[1])), outMaxs[0], outMins[0])
             self.pDic.update({'outMaxs': outMaxs, 'outMins': outMins, 'normZeros': normZeros})
 
-            #Shuffling dataset
-            inout = shuffle_dataset([self.netInps, *self.netOuts])
-            self.netInps, self.netOuts = inout[0], inout[1:]
             #Save preprocessed dataset and parameters
             saveInOut(self.netInps, self.netOuts, 'prep_'+self.datasetName, append = False)
             saveParametersDic(self.pDic, 'prep_'+self.datasetName)
@@ -144,10 +141,15 @@ class MNN_net(object):
         '''
         data = self.mainDataset
         inpStrains = getTotalInputStrains(data.pDic['sInpStrains'], data.pDic['nFBAs'])
+
+        #Shuffle the dataset
+        inout = shuffle_dataset([data.netInps, inpStrains, *data.netOuts])
+        netInps, inpStrains, netOuts = inout[0], inout[1], inout[2:]
         #Adjust the outputs
-        netOuts, self.nreit = adjustOutput(self.version, data.netOuts, self.nreit)
+        netOuts, self.nreit = adjustOutput(self.version, netOuts, self.nreit)
+        
         #Divide datasets
-        x, y  = divideSetsVersion(self.version, data.netInps, netOuts, inpStrains, trainProp, valProp)
+        x, y  = divideSetsVersion(self.version, netInps, netOuts, inpStrains, trainProp, valProp)
         [self.xTrain, self.xVal, self.xTest], [self.yTrain, self.yVal, self.yTest] = x, y
 
     def trainMNN(self, epochs=10, verb=2):
