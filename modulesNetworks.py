@@ -170,9 +170,9 @@ def build_MNNv2_1(mediumMetabs, glayersIds, nreit=0, activs = ['relu', ''], matC
     #Reactions layers repeated nreit times as dense layers
     outs, losses, wlosses = [], {}, {}
     mnnLayers=[Dense(len(glayersIds[0]), activation = activs[0],
-                     name='ReactLayer0')(inputLayer)]
-    losses['ReactLayer0'] = 'mean_squared_error'
-    wlosses['ReactLayer0'] = reactLossW/(nreit+1)
+                     name='ReactLayer')(inputLayer)]
+    losses['ReactLayer'] = 'mean_squared_error'
+    wlosses['ReactLayer'] = reactLossW/(nreit+1)
     outs.append(mnnLayers[-1])
     for i in range(1,nreit+1):
         mnnLayers.append(Dense(len(glayersIds[0]), activation = activs[0],

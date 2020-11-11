@@ -210,7 +210,8 @@ def renameBiomass(gLayDics):
 #### Main functions
 ##########################################
 
-def createFBADataset(modelBases, nFBAs, doFBA = False, strainBase = '_MNNv2', modelsFolder = 'modelsEC/'):
+def createFBADataset(modelBases, nFBAs, doFBA = False, strainBase = '_MNNv2',
+                     modelsFolder = 'modelsEC/'):
     '''Creates a FBA dataset from cobra models
     Inputs:  -modelBases: list of str, names of cobra models
              -nFBAs: int, number of FBAs per strain
@@ -228,7 +229,7 @@ def createFBADataset(modelBases, nFBAs, doFBA = False, strainBase = '_MNNv2', mo
         mCobra = models[i]
         filebase = '{}{}'.format(modelBases[i], strainBase)
         print('Loading: ', filebase)
-        glayers, glayersIds = grrann_layers(mCobra)
+        glayers, glayersIds = grrann_layers(mCobra, realBiomass=False)
         
         if doFBA:
             netInps, netOuts = batch_of_FBAs_MNN(mCobra, glayers, nFBAs)
@@ -236,7 +237,7 @@ def createFBADataset(modelBases, nFBAs, doFBA = False, strainBase = '_MNNv2', mo
         netInps, netOuts = loadInOut(filebase)
         
         #Ids of the reactions, caring that the biomass is the real
-        glayers, glayersIds = grrann_layers(mCobra, netOuts[1])
+        glayers, glayersIds = grrann_layers(mCobra)
         reactionsIds = updateDic(reactionsIds, glayersIds[0], glayers[0])
         outputsIds = updateDic(outputsIds, glayersIds[1], glayers[1])
      
@@ -271,7 +272,7 @@ def dataset2dicMNN(inputs, netOutputs, FBAmodel, numberFBAs=-1):
     inps, reacts, exchs = {}, {}, {}
     reactions, exchanges = netOutputs
     mediumMetabs = get_influxesIds(FBAmodel)
-    glayers, glayersIds = grrann_layers(FBAmodel, exchanges)
+    glayers, glayersIds = grrann_layers(FBAmodel)
     if numberFBAs == -1:
         numberFBAs = inputs.shape[0]
     for i in range(len(mediumMetabs)):
@@ -322,7 +323,7 @@ def dic2array(dic):
     metabsIds = list(dic.keys())
     return data, metabsIds
 
-def grrann_layers(m, preExchanges=0):
+def grrann_layers(m, realBiomass=True):
     '''Given a cobra model, returns a list with the reactions of the model and another list
     with its exchanges and the BIOMASS reactions. Looks for the real biomass, the objective value
     Inputs:  -m: cobramodel
@@ -341,9 +342,8 @@ def grrann_layers(m, preExchanges=0):
         else:
             reactions.append(reaction)
             reIds.append(reaction.id)
-    return [reactions, exchanges], [reIds, exIds]
     #Find the real biomass
-    if type(preExchanges) == type(np.array([])):
+    if realBiomass:
         bioIdx = findRealBiomass(m, exIds)
         exIds[bioIdx] = 'Biomass'
     return [reactions, exchanges], [reIds, exIds]

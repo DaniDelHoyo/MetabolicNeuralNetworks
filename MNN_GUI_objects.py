@@ -96,16 +96,16 @@ class DatasetFrame(ttk.Frame):
         self.doFBA, self.nFBAs = self.doFBAState.get(), int(self.numEntry.get())
         self.modelBases = self.parseModels()
         #Create / Load dataset
-        dataset = MNN_dataset()
-        dataset.loadDataset(self.datasetName, self.nFBAs, self.modelBases,self.newDataset, self.doFBA)
+        self.dataset = MNN_dataset()
+        self.dataset.loadDataset(self.datasetName, self.nFBAs, self.modelBases,self.newDataset, self.doFBA)
         #Preprocess dataset
         if self.doPreprocess:
             self.threshold = float(self.thrEntry.get())
-            dataset.preprocessDataset(self.threshold)
+            self.dataset.preprocessDataset(self.threshold)
         
         lbl='''Dataset shapes (Original / Preprocessed):\n\nNumber of FBAs:\t\t{}\nInput shapes:\t\t{}  /  {}\nReactions shapes:\t\t{}  /  {}\nExchanges shapes:\t{}  /  {}\
-             '''.format(dataset.netInps.shape[0], dataset.oriShapes[0], dataset.prepShapes[0],
-                     dataset.oriShapes[1], dataset.prepShapes[1], dataset.oriShapes[2], dataset.prepShapes[2])
+             '''.format(self.dataset.netInps.shape[0], self.dataset.oriShapes[0], self.dataset.prepShapes[0],
+                     self.dataset.oriShapes[1], self.dataset.prepShapes[1], self.dataset.oriShapes[2], self.dataset.prepShapes[2])
         self.greet_label["text"] = lbl
 
         
@@ -275,7 +275,10 @@ class NetworkFrame(ttk.Frame):
         self.net = MNN_net(self.data)
         self.net.createMNN(version, sparse, save=True)
 
-        self.fileLabel.configure(text = 'MNN dataset:  {}\nVersion:  {}\nSparse:  {}'.format(self.data.datasetName, self.net.version, self.net.sparse))
+        if self.net.version in [11, 21]:
+            self.fileLabel.configure(text = 'MNN dataset:  {}\nVersion:  {}\nSparse:  {}'.format(self.data.datasetName, self.net.version, False))
+        else:
+            self.fileLabel.configure(text = 'MNN dataset:  {}\nVersion:  {}\nSparse:  {}'.format(self.data.datasetName, self.net.version, self.net.sparse))
         self.divButton['state'], self.te2Button['state'], self.brow2Button['state'] = 'active', 'active', 'active'
         
     def findMNN(self):

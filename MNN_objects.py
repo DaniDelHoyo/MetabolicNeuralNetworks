@@ -238,7 +238,8 @@ class MNN_net(object):
                 self.realPredOuts = [norm2real(self.predOuts[-2], outMaxs[-2], outMins[-2]),
                                      norm2real(self.predOuts[-1], outMaxs[-1], outMins[-1])]
             #Save predictions
-            outfn = self.predBase + '_v' + str(self.version) + '_predictions.pickle'
+            key = '_v' + str(self.version) + str(self.sparse)
+            outfn = self.predBase + key + '_predictions.pickle'
             with open(outfn, 'wb') as handle:
                 pickle.dump(self.realPredOuts, handle)
             print('\nPredictions saved in '+outfn)
