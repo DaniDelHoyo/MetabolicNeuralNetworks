@@ -281,6 +281,7 @@ class NetworkFrame(ttk.Frame):
     def findMNN(self):
         '''File dialog to look for a pretrained MNN weights file (h5)
         '''
+        self.net = MNN_net(self.data)
         self.loadMNN()
         self.fileLabel.configure(text = 'MNN file:  {}\nVersion:  {}\nSparse:  {}'\
                                  .format(self.net.mainDataFile.split('/')[-1], self.net.version, self.net.sparse))

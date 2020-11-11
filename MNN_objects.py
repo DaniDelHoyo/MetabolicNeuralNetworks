@@ -51,6 +51,7 @@ class MNN_dataset(object):
         if newDataset or not datasetName+'_inputs.pickle' in os.listdir():
             #Load and/or run the FBAs of the selected cobra models
             self.netInps, self.netOuts, self.pDic = createFBADataset(modelBases, nFBAs, doFBA)
+            nFBAs = self.netInps.shape[0]
             self.pDic.update({'sInpStrains': getSparseInputStrains(self.netOuts[0], nFBAs),
                  'nFBAs': nFBAs, 'modelBases': modelBases})
             #Save produced dataset and parameters
@@ -185,6 +186,7 @@ class MNN_net(object):
         newInps, newOuts = loadInOut(newDatasetName)
         newInps, self.realNewOuts = adaptInputOutputMultiStrain(newInps, newOuts, self.new_pDic,
                                                                 data.pDic)
+        self.new_pDic['sInpStrains'] = getInputStrain(self.realNewOuts[0])
         self.newInps = newInps / 1000
         self.newOuts = [real2normArray(self.realNewOuts[0], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
                         real2normArray(self.realNewOuts[1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
@@ -227,10 +229,18 @@ class MNN_net(object):
             #Adjust to input MNN structure
             predInps = prepareInputs(self.predInps, self.version, self.mainDataset.pDic)
             self.predOuts = self.modelMNN.predict(predInps)
+            #Denormalize predictions
+            data = self.mainDataset
+            outMaxs, outMins = data.pDic['outMaxs'], data.pDic['outMins']
+            if self.version == 11:
+                self.realPredOuts = [norm2real(self.predOuts[-1], outMaxs[-1], outMins[-1])]
+            else:
+                self.realPredOuts = [norm2real(self.predOuts[-2], outMaxs[-2], outMins[-2]),
+                                     norm2real(self.predOuts[-1], outMaxs[-1], outMins[-1])]
             #Save predictions
-            outfn = self.predBase + '_predictions.pickle'
+            outfn = self.predBase + '_v' + str(self.version) + '_predictions.pickle'
             with open(outfn, 'wb') as handle:
-                pickle.dump(self.predOuts, handle)
+                pickle.dump(self.realPredOuts, handle)
             print('\nPredictions saved in '+outfn)
         else:
             print('\nA prediction Input must be loaded first ( self.loadInputs(pickleFilename) )')

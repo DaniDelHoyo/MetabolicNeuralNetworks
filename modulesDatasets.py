@@ -408,6 +408,10 @@ def shuffle_dataset(datas):
         datas[i] = datas[i][s,:]
     return datas
 
+def norm2real(predictions, maxs, mins):
+    '''Return the denormalized values of the output'''
+    return predictions * (maxs-mins) + mins
+
 def real2normArray(realArray, maxs, mins):
     return (realArray-mins) / (maxs-mins)
     
