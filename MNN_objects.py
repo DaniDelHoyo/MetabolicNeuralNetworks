@@ -39,7 +39,7 @@ class MNN_dataset(object):
         ''')
 
     def loadDataset(self, datasetName, nFBAs = 5000, modelBases = ['iJO1366', 'iYS1720'],
-                    newDataset = False, doFBA = False):
+                    newDataset = False, doFBA = False, modelsFolder = 'modelsEC/'):
         '''Create or load the MNN dataset. For loading, just the datasetName is neccesary.
         - datasetName: str, name of the dataset. Ex: ecSalm for ecSalm_inputs.pickle file
         - nFBAs: int, number of FBAs per model to include in the dataset
@@ -50,7 +50,7 @@ class MNN_dataset(object):
         self.datasetName, self.nFBAs = datasetName, nFBAs
         if newDataset or not datasetName+'_inputs.pickle' in os.listdir():
             #Load and/or run the FBAs of the selected cobra models
-            self.netInps, self.netOuts, self.pDic = createFBADataset(modelBases, nFBAs, doFBA)
+            self.netInps, self.netOuts, self.pDic = createFBADataset(modelBases, nFBAs, doFBA, modelsFolder=modelsFolder)
             nFBAs = self.netInps.shape[0]
             self.pDic.update({'sInpStrains': getSparseInputStrains(self.netOuts[0], nFBAs),
                  'nFBAs': nFBAs, 'modelBases': modelBases})
@@ -126,7 +126,7 @@ class MNN_net(object):
         if filename==None:
             filename = filedialog.askopenfilename(
             initialdir =  os.getcwd(), title = "Select A File",
-            filetype = (("h5 files","*.h5"),("all files","*.*")))
+            filetypes = (("h5 files","*.h5"),("all files","*.*")))
         if key==None:
             key = filename.split('/')[-1].split('v')[-1].split('.')[0]
         self.mainDataFile = filename
@@ -212,7 +212,7 @@ class MNN_net(object):
         if pickleFilename==None:
             self.predFilename = filedialog.askopenfilename(
                 initialdir =  os.getcwd(), title = "Select A File",
-                filetype = (("input pickle files","*.pickle"),("all files","*.*")))
+                filetypes = (("input pickle files","*.pickle"),("all files","*.*")))
         else:
             self.predFilename = pickleFilename
         infn, self.predBase = self.predFilename, self.predFilename.split('_inputs')[0]
@@ -222,6 +222,26 @@ class MNN_net(object):
         #Adapt and normalize
         self.predInps = adaptInputMultiStrain(self.predInps, self.pred_pDic, self.mainDataset.pDic)
         self.predInps /= 1000
+
+    def loadOutputs(self, pickleFilename=None):
+        '''Load outputs for comparing predictions with the MNN system
+        - pickleFilename: str, filename of the outputs file (in pickle format and with correspondent parameters file)
+        '''
+        data = self.mainDataset
+        if pickleFilename==None:
+            self.predFilename = filedialog.askopenfilename(
+                initialdir =  os.getcwd(), title = "Select A File",
+                filetypes = (("output pickle files","*.pickle"),("all files","*.*")))
+        else:
+            self.predFilename = pickleFilename
+        infn, self.predBase = self.predFilename, self.predFilename.split('_outputs')[0]
+        with open(infn,'rb') as foutputs:
+            self.loadedOuts = pickle.load(foutputs)
+        self.pred_pDic = loadParametersDic(self.predBase)
+        #Adapt and normalize
+        self.loadedOuts = adaptOutputMultiStrain(self.loadedOuts, self.pred_pDic, self.mainDataset.pDic)
+        self.loadedOuts = [real2normArray(self.loadedOuts[0], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
+                           real2normArray(self.loadedOuts[1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
 
     def predict(self):
         '''Generates the predictions for the loaded inputs'''
@@ -245,6 +265,13 @@ class MNN_net(object):
             print('\nPredictions saved in '+outfn)
         else:
             print('\nA prediction Input must be loaded first ( self.loadInputs(pickleFilename) )')
+
+    def heatmap(self, heatIdx):
+        if self.version == 11:
+            plotHeatmap(self.predOuts, self.loadedOuts, heatIdx, fillValue=0.5)
+        else:
+            plotHeatmap(self.predOuts[-2], self.loadedOuts[-2], heatIdx, fillValue=0.5)
+            plotHeatmap(self.predOuts[-1], self.loadedOuts[-1], heatIdx, fillValue=0.5)
 
     ############################
     #### Auxiliar functions ####

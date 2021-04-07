@@ -13,6 +13,8 @@ import pickle
 import matplotlib.pyplot as plt
 import random as rd
 import os
+import math
+import seaborn as sns
 
 ##########################################
 #### Auxiliar functions
@@ -637,6 +639,18 @@ def input2dic(inputs, pDic, numberFBAs):
         inps[medium_metabs[i]] = list(inputs[:numberFBAs,i])
     return inps
 
+def output2dic(netOutputs, pDic, numberFBAs):
+    reacts, exchs = {}, {}
+    reactions, exchanges = netOutputs
+    glayersIds = pDic['glayersIds']
+
+    for i in range(len(glayersIds[0])):
+        reacts[glayersIds[0][i]] = list(reactions[:numberFBAs, i])
+    for i in range(len(glayersIds[-1])):
+        exchs[glayersIds[-1][i]] = list(exchanges[:numberFBAs, i])
+
+    return reacts, exchs
+
 def adaptInputMultiStrain(newInps, new_pDic, pDic):
     inputs_dic, reactions_dic, exchanges_dic = makeEmptyDics(pDic)
     cur_inp_dic = input2dic(newInps, new_pDic, pDic['nFBAs'])
@@ -644,7 +658,15 @@ def adaptInputMultiStrain(newInps, new_pDic, pDic):
     new_inputs_dic = addDicIndivs(cur_inp_dic, inputs_dic, False)
     newInps = dic2array(new_inputs_dic)[0]
     return newInps
-    
+
+def adaptOutputMultiStrain(newOuts, new_pDic, pDic):
+    inputs_dic, reactions_dic, exchanges_dic = makeEmptyDics(pDic)
+    cur_react_dic, cur_exch_dic = output2dic(newOuts, new_pDic, pDic['nFBAs'])
+
+    new_reactions_dic = addDicIndivs(cur_react_dic, reactions_dic, False)
+    new_exchanges_dic = addDicIndivs(cur_exch_dic, exchanges_dic, False)
+    newOuts = [dic2array(new_reactions_dic)[0], dic2array(new_exchanges_dic)[0]]
+    return newOuts
 
 def dic2array(dic):
     '''Return an array that is complementary to the dictionary and the keys of the dictionary'''
@@ -732,7 +754,6 @@ def loadParametersDic(datasetName):
 ###################
 #Plotting functions
 ###################
-
 def plot_output(v, history, nreit, which=2):
     '''Plot the results of the training of a neural network
     Inputs:  -history: history of a trained tensorflow network
@@ -787,4 +808,51 @@ def plot_output(v, history, nreit, which=2):
         plt.xlabel('Number of epochs')
         plt.ylabel('Loss')
         plt.show()
+
+
+def squareShape(n):
+    '''Return the 2D shapes of a line vector, making it square'''
+    sq = math.sqrt(n)
+    if sq == int(sq):
+        return (int(sq), int(sq))
+    else:
+        sq = int(sq)
+        if sq * (sq + 1) >= n:
+            return (sq + 1, sq)
+        else:
+            return (sq + 1, sq + 1)
+
+def nonExactReshape(ar, nShape, fillValue=0.5):
+    '''Reshape a vector array into a 2D array with shape nShape, filling values with 0.
+    The values are filled by rows'''
+    nar = np.zeros(nShape)
+    nar.fill(fillValue)
+    ii = 0
+    for i in range(nShape[0]):
+        for j in range(nShape[1]):
+            nar[i, j] = ar[ii]
+            ii += 1
+            if ii >= len(ar):
+                return nar
+
+def plotHeatmap(normOutPreds, yTest, heatIdx, fillValue=0.5, save=None):
+    '''Plot the heatmap of the real and the prediction values
+    normOutPreds: array with normalized predictions
+    yTest: array with normalized real values'''
+    valsPred, valsReal = normOutPreds[heatIdx, :], yTest[heatIdx]
+    nShape = squareShape(len(normOutPreds[heatIdx, :]))
+    valsPred = nonExactReshape(valsPred, nShape, fillValue=fillValue)
+    valsReal = nonExactReshape(valsReal, nShape, fillValue=fillValue)
+
+    fig, axs = plt.subplots(ncols=3, gridspec_kw=dict(width_ratios=[7, 7, 0.5]))
+    sns.heatmap(valsPred, annot=False, linewidths=.1, cmap='seismic', cbar=False, ax=axs[0])
+    sns.heatmap(valsReal, annot=False, linewidths=.1, cmap='seismic', yticklabels=False,
+                cbar=False, ax=axs[1])
+    fig.colorbar(axs[1].collections[0], cax=axs[2])
+    axs[0].title.set_text('Prediction outputs')
+    axs[1].title.set_text('Real outputs')
+    plt.tight_layout()
+    if save != None:
+        plt.savefig(save)
+    plt.show()
 

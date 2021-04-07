@@ -33,7 +33,7 @@ class DatasetFrame(ttk.Frame):
         self.nameLabel.pack(side = 'left')
         self.nameEntry = ttk.Entry(self.nameFrame)
         self.nameEntry.pack(side = 'left', padx=10)
-        self.nameEntry.insert(0,'ecSalm')
+        self.nameEntry.insert(0,'simpleEC')
 
         #New dataset options
         self.newFrame = tk.LabelFrame(self, text='New dataset', pady=10)
@@ -57,14 +57,14 @@ class DatasetFrame(ttk.Frame):
         self.folderLabel.pack(side = 'left')
         self.folderEntry = ttk.Entry(self.folderFrame)
         self.folderEntry.pack(side = 'left', padx=10, pady=5)
-        self.folderEntry.insert(0,'modelsEC/')
+        self.folderEntry.insert(0,'biggModels/')
         self.modelsFrame = ttk.Frame(self.newFrame)
         self.modelsFrame.pack(fill=tk.X)
         self.modelsLabel = ttk.Label(self.modelsFrame, text = '- Model names (csv): ')
         self.modelsLabel.pack(side = 'left')
         self.modelsEntry = ttk.Entry(self.modelsFrame)
         self.modelsEntry.pack(side = 'left', padx=10, pady=5)
-        self.modelsEntry.insert(0,'iYS1720,iJO1366')
+        self.modelsEntry.insert(0,'iWFL,iJO1366')
 
         #Preprocessing options
         self.prepFrame = tk.LabelFrame(self, text='Preprocessing', pady=10)
@@ -94,10 +94,12 @@ class DatasetFrame(ttk.Frame):
         self.newDataset, self.doPreprocess = self.newState.get(), self.prepState.get()
         self.datasetName = self.nameEntry.get()
         self.doFBA, self.nFBAs = self.doFBAState.get(), int(self.numEntry.get())
+        self.modelsFolder = self.folderEntry.get()
         self.modelBases = self.parseModels()
         #Create / Load dataset
         self.dataset = MNN_dataset()
-        self.dataset.loadDataset(self.datasetName, self.nFBAs, self.modelBases,self.newDataset, self.doFBA)
+        self.dataset.loadDataset(self.datasetName, self.nFBAs, self.modelBases,self.newDataset,
+                                 self.doFBA, self.modelsFolder)
         #Preprocess dataset
         if self.doPreprocess:
             self.threshold = float(self.thrEntry.get())
@@ -123,7 +125,7 @@ class NetworkFrame(ttk.Frame):
         self.nameLabel.pack(side = 'left')
         self.nameEntry = ttk.Entry(self.nameFrame)
         self.nameEntry.pack(side = 'left', padx=10)
-        self.nameEntry.insert(0,'prep_ecSalm')
+        self.nameEntry.insert(0,'prep_simpleEC')
         self.dataFrame = ttk.Frame(self.datasetFrame)
         self.dataFrame.pack(fill=tk.X)
         self.loadButton = tk.Button(self.dataFrame, text=' Load ', command = self.loadDataset)
@@ -250,6 +252,20 @@ class NetworkFrame(ttk.Frame):
         self.prLabel = tk.Label(self.predFrame, text = "")
         self.prLabel.pack(side = 'left', padx=10)
 
+        self.loadOFrame = ttk.Frame(self.predFrame)
+        self.loadOFrame.pack(fill=tk.X)
+        self.loadOLabel = tk.Label(self.loadOFrame, text="- Load extra outputs")
+        self.loadOLabel.pack(side='left')
+        self.loadOButton = tk.Button(self.loadOFrame, text="Browse A File", command=self.findOutputs)#, state='disabled')
+        self.loadOButton.pack(side='left', padx=10)
+        self.heatButton = tk.Button(self.loadOFrame, text=' Heatmap ', command=self.heatmap, state='disabled')
+        self.heatButton.pack(side='left', padx=10)
+        self.heatLabel = tk.Label(self.predFrame, text="Sample index")
+        self.heatLabel.pack(side='left', padx=10)
+        self.heatEntry = ttk.Entry(self.predFrame)
+        self.heatEntry.pack(side='left', padx=10)
+        self.heatEntry.insert(0, '1')
+
     ######################################
     ######### Button functions ###########
     ######################################
@@ -346,11 +362,23 @@ class NetworkFrame(ttk.Frame):
         self.net.loadInputs()
         self.prButton['state'] = 'active'
         time.sleep(0.1)
+
+    def findOutputs(self):
+        '''File dialog to look for an outputs.pickle file. It needs to have an associated parameters.pickle file
+        '''
+        self.net.loadOutputs()
+        self.heatButton['state'] = 'active'
+        time.sleep(0.1)
     
     def predict(self):
         '''Predicts the outputs of loaded inputs
         '''
         self.net.predict()
+
+    def heatmap(self):
+        '''Produces a heatmap to compare the outputs loaded with the predicted
+        '''
+        self.net.heatmap(int(self.heatEntry.get()))
 
     ###############################################
     ########### Auxiliar functions ################
@@ -388,7 +416,11 @@ class Application(ttk.Frame):
         self.notebook.add(self.network_frame, text="Network", padding=10)
         self.notebook.pack(padx=10, pady=10)
         self.pack()
-        
-main_window = tk.Tk()
-app = Application(main_window)
-#app.mainloop()
+
+def __main__():
+    main_window = tk.Tk()
+    app = Application(main_window)
+    app.mainloop()
+
+if __name__ == "__main__":
+    __main__()
