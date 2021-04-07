@@ -188,8 +188,8 @@ class MNN_net(object):
                                                                 data.pDic)
         self.new_pDic['sInpStrains'] = getInputStrain(self.realNewOuts[0])
         self.newInps = newInps / 1000
-        self.newOuts = [real2normArray(self.realNewOuts[0], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
-                        real2normArray(self.realNewOuts[1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
+        self.newOuts = [real2normArray(self.realNewOuts[-2], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
+                        real2normArray(self.realNewOuts[-1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
 
     def testExtraDataset(self):
         '''Test the MNN system in the loaded extra dataset'''
@@ -240,8 +240,12 @@ class MNN_net(object):
         self.pred_pDic = loadParametersDic(self.predBase)
         #Adapt and normalize
         self.loadedOuts = adaptOutputMultiStrain(self.loadedOuts, self.pred_pDic, self.mainDataset.pDic)
-        self.loadedOuts = [real2normArray(self.loadedOuts[0], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
-                           real2normArray(self.loadedOuts[1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
+        if self.version != 11:
+            self.loadedOuts = [real2normArray(self.loadedOuts[-2], data.pDic['outMaxs'][0], data.pDic['outMins'][0]),
+                               real2normArray(self.loadedOuts[-1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
+        else:
+            self.loadedOuts = [real2normArray(self.loadedOuts[-1], data.pDic['outMaxs'][1], data.pDic['outMins'][1])]
+
 
     def predict(self):
         '''Generates the predictions for the loaded inputs'''
@@ -268,7 +272,7 @@ class MNN_net(object):
 
     def heatmap(self, heatIdx):
         if self.version == 11:
-            plotHeatmap(self.predOuts, self.loadedOuts, heatIdx, fillValue=0.5)
+            plotHeatmap(self.predOuts, self.loadedOuts[-1], heatIdx, fillValue=0.5)
         else:
             plotHeatmap(self.predOuts[-2], self.loadedOuts[-2], heatIdx, fillValue=0.5)
             plotHeatmap(self.predOuts[-1], self.loadedOuts[-1], heatIdx, fillValue=0.5)

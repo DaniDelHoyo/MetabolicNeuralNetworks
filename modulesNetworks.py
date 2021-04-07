@@ -4,6 +4,7 @@ Universidad Politécnica de Madrid
 Auxiliar functions to work with the Metabolic Neural Network (MNN) objects.
 '''
 
+import tensorflow as tf
 from tensorflow.keras import Sequential, Model
 from tensorflow.keras.layers import Layer, Dense, Input, Activation
 from tensorflow.keras.activations import relu as relu
@@ -43,6 +44,7 @@ class CustomConnected(Dense):
         return dict(list(base_config.items()) + list(config.items()))
 
 class maskedActivationClass(Layer):
+    tf.compat.v1.disable_eager_execution()
     #Layer that masks the selected neurons so their outputs become 0
     def __init__(self, myMask, normZeros=0, preActivation = relu, **kwargs):
         self.myMask, self.normZeros = myMask, normZeros
@@ -64,7 +66,7 @@ class maskedActivationClass(Layer):
                   'normZeros': self.normZeros, 
                   'preActivation' : self.preActivation}
         base_config = super(maskedActivationClass, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))  
+        return dict(list(base_config.items()) + list(config.items()))
 
 def saveMNN(modelMNN, v, sparse, name='', folder = 'savedSystems/'):
     '''Saves the MNN system weights in a h5 file
